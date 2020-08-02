@@ -1,7 +1,9 @@
+# Open cvのインポート　（cv2はバージョンが２という意味ではない）
 import cv2
+# numpyのインポート
 import numpy as np
  
-# モジュール読み込み 
+# モジュール読み込み (sys:Pythonのインタプリタや実行環境に関する情報を扱うためのモジュール)
 import sys
 #sys.path.append('/opt/intel/openvino/python/python3.5/armv7l')
 from openvino.inference_engine import IENetwork, IEPlugin
@@ -10,27 +12,49 @@ from openvino.inference_engine import IENetwork, IEPlugin
 plugin = IEPlugin(device="MYRIAD")
  
 # モデルの読み込み 
-net = IENetwork(model='FP16/face-detection-retail-0004.xml', weights='FP16/face-detection-retail-0004.bin')
-exec_net = plugin.load(network=net)
+# net = IENetwork(model='FP16/face-detection-retail-0004.xml', weights='FP16/face-detection-retail-0004.bin')
+# 顔検出モデル'face-detection-adas-0001'を使用
+net = IENetwork(model='FP16/face-detection-adas-0001.xml', weights='FP16/face-detection-adas-0001.bin')
+# exec_net = plugin.load(network=net)
+
+# Configure input & output
+input_blob = next(iter(net.inputs))
+out_blob = next(iter(net.outputs))
+n, c, h, w = net.inputs[input_blob].shape
+
+# Load Model
+exec_net = plugin.load(network=net, num_requests=2)
  
 # カメラ準備 
 cap = cv2.VideoCapture(0)
  
 # メインループ 
 while True:
+    # video frameを1 frameずつ取得する
+    # video frameを取得できなかった場合は、ret=False
+    # 取得したvideo frameは'frame'に入る
     ret, frame = cap.read()
  
     # Reload on error 
     if ret == False:
         continue
  
+
     # 入力データフォーマットへ変換 
-    img = cv2.resize(frame, (300, 300))   # サイズ変更 
-    img = img.transpose((2, 0, 1))    # HWC > CHW 
-    img = np.expand_dims(img, axis=0) # 次元合せ 
+    # img = cv2.resize(frame, (300, 300))   # サイズ変更 
+    # img = img.transpose((2, 0, 1))    # HWC > CHW 
+    # img = np.expand_dims(img, axis=0) # 次元合せ 
  
     # 推論実行 
-    out = exec_net.infer(inputs={'data': img})
+    # out = exec_net.infer(inputs={'data': img})
+
+    
+    # Create Async Request
+    in_frame = cv2.resize(frame, (w, h))
+    in_frame = in_frame.transpose((2, 0, 1))
+    in_frame = in_frame.reshape((n, c, h, w))
+    exec_net.start_async(request_id=0, inputs={input_blob: in_frame}) 
+    # res's shape: [1, 1, 200, 7]
  
     # 出力から必要なデータのみ取り出し 
     out = out['detection_out']
