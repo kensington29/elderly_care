@@ -8,6 +8,7 @@ import re
 import os
 from openvino.inference_engine import IENetwork, IEPlugin
 import joblib
+import sys
 
 def resize_frame(frame, height):
 
@@ -72,8 +73,8 @@ def create(feature_vecs, aligned_faces, label):
         joblib.dump(face_pics, f, compress='gzip')
 
 
-face_vecs_file = 'face_vecs.gz'
-face_pics_file = 'face_pics.gz'
+face_vecs_file = 'reged_data/face_vecs.gz'
+face_pics_file = 'reged_data/face_pics.gz'
 
 class Register:
     def __init__(self):
