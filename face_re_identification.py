@@ -360,10 +360,10 @@ plt.rcParams['figure.figsize'] = (15.0, 15.0)
 
 # input image
 #image = "img_reged_person/hitoshi.jpg"
-#image = "img_reged_person/cherry.jpg"
+image = "img_reged_person/cherry.jpg"
 #image = "img_reged_person/mari_1.jpg"
 #image = "img_reged_person/mari_2.jpg"
-image = "img_reged_person/banqet.jpg"
+# image = "img_reged_person/banqet.jpg"
 
 # ターゲットデバイスの指定 
 plugin = IEPlugin(device="MYRIAD")
@@ -377,17 +377,17 @@ register = Register()
 frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
 init_frame = frame.copy()
 
-plt.figure(figsize=(10, 10))
-plt.title("target image")
-plt.imshow(frame)
-plt.show()
+#plt.figure(figsize=(10, 10))
+# plt.title("target image")
+# plt.imshow(frame)
+# plt.show()
 
 # set a target face from face database
 label = ['Hitoshi']
 face_vecs, face_pics = register.load()
 target_vec = face_vecs[label[0]]
 target_pic = face_pics[label[0]]
-register.show(label)
+# register.show(label)
 
     
 # get similarity between the target face and the feature vecs of faces in the image  
@@ -412,11 +412,11 @@ for i, face_id in enumerate(top_similarity):
         cv2.putText(frame, score, (xmin + 3, ymin - 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
-    ax = plt.subplot(rows, columns, i + 1)
-    ax.set_title('{:.2f}'.format(similarity[face_id]))
-    ax.axis('off')
-    plt.imshow(face_tmp)
-plt.show()
+#    ax = plt.subplot(rows, columns, i + 1)
+#    ax.set_title('{:.2f}'.format(similarity[face_id]))
+#    ax.axis('off')
+#    plt.imshow(face_tmp)
+#plt.show()
                 
 plt.figure(figsize=(10, 10))
 plt.axis('off')
