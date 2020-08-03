@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 import re
 import os
 from openvino.inference_engine import IENetwork, IEPlugin
+import joblib
 
 def resize_frame(frame, height):
 
@@ -56,6 +57,167 @@ def align_face(face_frame, landmarks):
     return aligned_face
 
 
+def create(feature_vecs, aligned_faces, label):
+    # ordered dict (need python 3.6+)
+    face_vecs = {}
+    face_pics = {}
+    for face_id, feature_vec in enumerate(feature_vecs):
+        face_vecs[label[face_id]] = feature_vec
+    with open(face_vecs_file, 'wb') as f:
+        joblib.dump(face_vecs, f, compress='gzip')
+
+    for face_id, aligned_face in enumerate(aligned_faces):
+        face_pics[label[face_id]] = aligned_face
+    with open(face_pics_file, 'wb') as f:
+        joblib.dump(face_pics, f, compress='gzip')
+
+
+face_vecs_file = 'face_vecs.gz'
+face_pics_file = 'face_pics.gz'
+
+class Register:
+    def __init__(self):
+        pass
+
+    def preprocess(self, image):
+    
+        # 1. Read Image
+        frame = get_frame(image)
+        
+        # 2. detect faces
+        if frame.shape[2] == 4:
+            frame = frame[:,:,0:3]
+               
+        
+        #face_detector = FaceDetection('face-detection-retail-0004.xml')
+        face_detector = FaceDetection('face-detection-adas-0001.xml')
+        
+        face_detector.infer(frame)
+        faces = face_detector.get_results()
+        face_frames, boxes = get_face_frames(faces, frame)
+               
+        # 3. get landmarks
+        landmarks_detector = FacialLandmarks('landmarks-regression-retail-0009.xml')
+        facial_landmarks_per_face = []
+
+        for face_id, face_frame in enumerate(face_frames):
+            landmarks_detector.infer(face_frame)
+            facial_landmarks = landmarks_detector.get_results(face_frame)
+            facial_landmarks_per_face.append(facial_landmarks)
+    
+        # 4. align faces
+        aligned_faces = []
+ 
+        for face_id, face_frame in enumerate(face_frames):
+            aligned_face = face_frame.copy()
+            aligned_face = align_face(aligned_face, facial_landmarks_per_face[face_id])
+            aligned_faces.append(aligned_face)
+    
+        face_id_detector_detector = FaceReIdentification('face-reidentification-retail-0095.xml')
+
+        # get feature vectors of faces
+        feature_vecs = np.zeros((len(aligned_faces), 256))
+    
+        for face_id, aligned_face in enumerate(aligned_faces):
+            face_id_detector_detector.infer(aligned_face)
+            feature_vec = face_id_detector_detector.get_results()
+            feature_vecs[face_id] = feature_vec
+
+        return frame, boxes, feature_vecs, aligned_faces
+
+    def create(self, feature_vecs, aligned_faces, label):
+        # ordered dict (need python 3.6+)
+        face_vecs = {}
+        face_pics = {}
+        
+        for face_id, feature_vec in enumerate(feature_vecs):
+            face_vecs[label[face_id]] = feature_vec
+        with open(face_vecs_file, 'wb') as f:
+            joblib.dump(face_vecs, f, compress='gzip')
+
+        for face_id, aligned_face in enumerate(aligned_faces):
+            face_pics[label[face_id]] = aligned_face
+        with open(face_pics_file, 'wb') as f:
+            joblib.dump(face_pics, f, compress='gzip')
+
+        
+    def update(self, feature_vecs, aligned_faces, label):
+        # ordered dict (need python 3.6+)
+        face_vecs = {}
+        face_pics = {}
+        face_vecs_dict = {}
+        face_pics_dict = {}
+        
+        try:
+            with open(face_vecs_file, 'rb') as f:
+                face_vecs_dict = joblib.load(f)
+        except EOFError:
+            pass
+        except FileNotFoundError:
+            pass
+        
+        for face_id, feature_vec in enumerate(feature_vecs):
+            face_vecs[label[face_id]] = feature_vec
+        
+         # update dict
+        face_vecs_dict.update(face_vecs) 
+        
+        with open(face_vecs_file, 'wb') as f:
+            joblib.dump(face_vecs_dict, f, compress='gzip')
+        
+        try:    
+            with open(face_pics_file, 'rb') as f:
+                face_pics_dict = joblib.load(f)
+        except EOFError:
+            pass
+        except FileNotFoundError:
+            pass
+        for face_id, aligned_face in enumerate(aligned_faces):
+            face_pics[label[face_id]] = aligned_face
+        
+        # update dict
+        face_pics_dict.update(face_pics)
+
+        with open(face_pics_file, 'wb') as f:
+            joblib.dump(face_pics_dict, f, compress='gzip')
+
+        
+    def lists(self):
+        with open(face_vecs_file, 'rb') as f:
+            face_vecs = joblib.load(f)
+
+        with open(face_pics_file, 'rb') as f:
+            face_pics = joblib.load(f)
+
+        for face_id, (key, val) in enumerate(face_pics.items()):
+            print("{}, label:{} shape:{}".format(face_id, key, val.shape))
+            
+        
+    def show(self, label):
+        with open(face_vecs_file, 'rb') as f:
+            face_vecs = joblib.load(f)
+        
+        with open(face_pics_file, 'rb') as f:
+            face_pics = joblib.load(f)
+        
+        plt.figure()
+        for key in label:
+            face_vec = face_vecs[key]
+            print("label:{} shape:{}".format(key, face_vec.shape))
+            ax = plt.subplot(6, 6, 1)
+            ax.set_title("{}".format(key))
+            ax.axis('off')
+            plt.imshow(face_pics[key])
+        plt.show()
+
+    def load(self):
+        with open(face_vecs_file, 'rb') as f:
+            face_vecs = joblib.load(f)
+        
+        with open(face_pics_file, 'rb') as f:
+            face_pics = joblib.load(f)
+            
+        return face_vecs, face_pics
 
 # plot setting
 rows = 6
@@ -200,3 +362,42 @@ for face_id, face_frame in enumerate(face_frames):
     ax.set_title("after face:{}".format(face_id))
     plt.imshow(aligned_face)
 plt.show()
+
+# 1.Read IR
+# model_xml = fp_path + "face-reidentification-retail-0095.xml"
+# model_bin = os.path.splitext(model_xml)[0] + ".bin"
+net = IENetwork(model="FP16/face-reidentification-retail-0095.xml", weights="FP16/face-reidentification-retail-0095.bin")
+
+# 2. Configure input & putput
+input_blob = next(iter(net.inputs))
+out_blob = next(iter(net.outputs))
+n, c, h, w = net.inputs[input_blob].shape
+print("input:{}\noutput:{}".format(net.inputs,net.outputs))
+print("input.shape:{}\noutput.shape:{}".format(
+    net.inputs[input_blob].shape, net.outputs[out_blob].shape))
+
+# 3. Load Model
+exec_net = plugin.load(network=net, num_requests=2)
+
+# 4. Create Async Request per faces
+frame = init_frame.copy()
+feature_vecs = np.zeros((faces.shape[2], 256))
+
+for face_id, aligned_face in enumerate(aligned_faces):
+    in_frame = cv2.resize(aligned_face, (w, h))
+    in_frame = in_frame.transpose((2, 0, 1))
+    in_frame = in_frame.reshape((n, c, h, w))
+    exec_net.infer(inputs={input_blob: in_frame})
+   
+    # 5. Get reponse and store feature vector of faces
+    res = exec_net.requests[0].outputs[out_blob]
+    # save feature vectors of faces
+    feature_vecs[face_id] = res[0].reshape(res.shape[1],)
+
+feature_vecs
+
+label = ['Hitoshi']
+
+register = Register()
+register.create(feature_vecs, aligned_faces, label)
+register.lists()
