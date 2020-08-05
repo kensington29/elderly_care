@@ -360,10 +360,10 @@ plt.rcParams['figure.figsize'] = (15.0, 15.0)
 
 # input image
 #image = "img_reged_person/hitoshi.jpg"
-image = "img_reged_person/cherry.jpg"
+#image = "img_reged_person/cherry.jpg"
 #image = "img_reged_person/mari_1.jpg"
 #image = "img_reged_person/mari_2.jpg"
-# image = "img_reged_person/banqet.jpg"
+image = "img_reged_person/banqet.jpg"
 
 # ターゲットデバイスの指定 
 plugin = IEPlugin(device="MYRIAD")
@@ -393,7 +393,7 @@ target_pic = face_pics[label[0]]
 # get similarity between the target face and the feature vecs of faces in the image  
 similarity = cos_similarity(target_vec, feature_vecs)
 frame = init_frame.copy()
-plt.figure(figsize=(10, 10))
+# plt.figure(figsize=(10, 10))
 
 # similarity by descending order
 top_similarity = similarity.argsort()[::-1]
@@ -404,12 +404,15 @@ for i, face_id in enumerate(top_similarity):
     xmin, ymin, xmax, ymax = boxes[face_id]
     score = "{:.3f}".format(similarity[face_id])  
 
-    if face_id == similarity.argmax():
+#   similarity が0.4以上で最大の顔を四角で囲む
+    if face_id == similarity.argmax() and similarity[face_id] >= 0.4:
         cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (0, 255, 0), -1)
         cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (255, 255, 255))
         cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
         cv2.rectangle(face_tmp, (0, 0), (face_tmp.shape[1], face_tmp.shape[0]), (0, 255, 0), 2)
-        cv2.putText(frame, score, (xmin + 3, ymin - 5),
+        # cv2.putText(frame, score, (xmin + 3, ymin - 5),
+        #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+        cv2.putText(frame, label[i], (xmin + 3, ymin - 5),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
 
 #    ax = plt.subplot(rows, columns, i + 1)
