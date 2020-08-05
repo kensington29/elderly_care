@@ -358,12 +358,6 @@ rows = 6
 columns = 6
 plt.rcParams['figure.figsize'] = (15.0, 15.0)
 
-# input image
-#image = "img_reged_person/hitoshi.jpg"
-#image = "img_reged_person/cherry.jpg"
-#image = "img_reged_person/mari_1.jpg"
-#image = "img_reged_person/mari_2.jpg"
-image = "img_reged_person/banqet.jpg"
 
 # ターゲットデバイスの指定 
 plugin = IEPlugin(device="MYRIAD")
@@ -374,6 +368,23 @@ plugin = IEPlugin(device="MYRIAD")
 net = IENetwork(model='FP16/face-detection-adas-0001.xml', weights='FP16/face-detection-adas-0001.bin')
 
 register = Register()
+
+# set a target face from face database
+label = ['Hitoshi']
+face_vecs, face_pics = register.load()
+target_vec = face_vecs[label[0]]
+target_pic = face_pics[label[0]]
+# register.show(label)
+
+
+# input image
+#image = "img_reged_person/hitoshi.jpg"
+#image = "img_reged_person/cherry.jpg"
+#image = "img_reged_person/mari_1.jpg"
+#image = "img_reged_person/mari_2.jpg"
+image = "img_reged_person/banqet.jpg"
+
+
 frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
 init_frame = frame.copy()
 
@@ -382,12 +393,6 @@ init_frame = frame.copy()
 # plt.imshow(frame)
 # plt.show()
 
-# set a target face from face database
-label = ['Hitoshi']
-face_vecs, face_pics = register.load()
-target_vec = face_vecs[label[0]]
-target_pic = face_pics[label[0]]
-# register.show(label)
 
     
 # get similarity between the target face and the feature vecs of faces in the image  
@@ -397,7 +402,7 @@ frame = init_frame.copy()
 
 # similarity by descending order
 top_similarity = similarity.argsort()[::-1]
-print('similarity:{}'.format(similarity[top_similarity]))
+# print('similarity:{}'.format(similarity[top_similarity]))
 
 for i, face_id in enumerate(top_similarity):
     face_tmp = aligned_faces[face_id].copy()
