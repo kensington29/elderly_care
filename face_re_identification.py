@@ -213,10 +213,11 @@ class Register:
     def __init__(self):
         pass
 
-    def preprocess(self, image):
+    # def preprocess(self, image):
+    def preprocess(self, frame):
     
         # 1. Read Image
-        frame = get_frame(image)
+        # frame = get_frame(image)
         
         # 2. detect faces
         if frame.shape[2] == 4:
@@ -257,7 +258,8 @@ class Register:
             feature_vec = face_id_detector_detector.get_results()
             feature_vecs[face_id] = feature_vec
 
-        return frame, boxes, feature_vecs, aligned_faces
+        # return frame, boxes, feature_vecs, aligned_faces
+        return boxes, feature_vecs, aligned_faces
 
     def create(self, feature_vecs, aligned_faces, label):
         # ordered dict (need python 3.6+)
@@ -382,52 +384,76 @@ target_pic = face_pics[label[0]]
 #image = "img_reged_person/cherry.jpg"
 #image = "img_reged_person/mari_1.jpg"
 #image = "img_reged_person/mari_2.jpg"
-image = "img_reged_person/banqet.jpg"
+# image = "img_reged_person/banqet.jpg"
+
+# カメラ準備 
+cap = cv2.VideoCapture(0)
+
+# メインループ 
+while True:
+    # video frameを1 frameずつ取得する
+    # video frameを取得できなかった場合は、ret=False
+    # 取得したvideo frameは'frame'に入る
+    ret, frame = cap.read()
+ 
+    # Reload on error 
+    if ret == False:
+        continue
+
+    # frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
+    boxes, feature_vecs, aligned_faces = register.preprocess(frame)
+    init_frame = frame.copy()
+
+    #plt.figure(figsize=(10, 10))
+    # plt.title("target image")
+    # plt.imshow(frame)
+    # plt.show()
 
 
-frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
-init_frame = frame.copy()
+        
+    # get similarity between the target face and the feature vecs of faces in the image  
+    similarity = cos_similarity(target_vec, feature_vecs)
+    frame = init_frame.copy()
+    # plt.figure(figsize=(10, 10))
 
-#plt.figure(figsize=(10, 10))
-# plt.title("target image")
-# plt.imshow(frame)
-# plt.show()
+    # similarity by descending order
+    top_similarity = similarity.argsort()[::-1]
+    # print('similarity:{}'.format(similarity[top_similarity]))
+
+    for i, face_id in enumerate(top_similarity):
+        face_tmp = aligned_faces[face_id].copy()
+        xmin, ymin, xmax, ymax = boxes[face_id]
+        score = "{:.3f}".format(similarity[face_id])  
+
+    #   similarity が0.4以上で最大の顔を四角で囲む
+        if face_id == similarity.argmax() and similarity[face_id] >= 0.4:
+            cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (0, 255, 0), -1)
+            cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (255, 255, 255))
+            cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
+            cv2.rectangle(face_tmp, (0, 0), (face_tmp.shape[1], face_tmp.shape[0]), (0, 255, 0), 2)
+            # cv2.putText(frame, score, (xmin + 3, ymin - 5),
+            #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+            cv2.putText(frame, label[i], (xmin + 3, ymin - 5),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+
+    #    ax = plt.subplot(rows, columns, i + 1)
+    #    ax.set_title('{:.2f}'.format(similarity[face_id]))
+    #    ax.axis('off')
+    #    plt.imshow(face_tmp)
+    #plt.show()
+                    
+    plt.figure(figsize=(10, 10))
+    plt.axis('off')
+    plt.title("face re-identification")
+    plt.imshow(frame)
+    plt.show()
 
 
-    
-# get similarity between the target face and the feature vecs of faces in the image  
-similarity = cos_similarity(target_vec, feature_vecs)
-frame = init_frame.copy()
-# plt.figure(figsize=(10, 10))
-
-# similarity by descending order
-top_similarity = similarity.argsort()[::-1]
-# print('similarity:{}'.format(similarity[top_similarity]))
-
-for i, face_id in enumerate(top_similarity):
-    face_tmp = aligned_faces[face_id].copy()
-    xmin, ymin, xmax, ymax = boxes[face_id]
-    score = "{:.3f}".format(similarity[face_id])  
-
-#   similarity が0.4以上で最大の顔を四角で囲む
-    if face_id == similarity.argmax() and similarity[face_id] >= 0.4:
-        cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (0, 255, 0), -1)
-        cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (255, 255, 255))
-        cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
-        cv2.rectangle(face_tmp, (0, 0), (face_tmp.shape[1], face_tmp.shape[0]), (0, 255, 0), 2)
-        # cv2.putText(frame, score, (xmin + 3, ymin - 5),
-        #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        cv2.putText(frame, label[i], (xmin + 3, ymin - 5),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-
-#    ax = plt.subplot(rows, columns, i + 1)
-#    ax.set_title('{:.2f}'.format(similarity[face_id]))
-#    ax.axis('off')
-#    plt.imshow(face_tmp)
-#plt.show()
-                
-plt.figure(figsize=(10, 10))
-plt.axis('off')
-plt.title("face re-identification")
-plt.imshow(frame)
-plt.show()
+        # 何らかのキーが押されたら終了 
+    key = cv2.waitKey(1)
+    if key != -1:
+        break
+ 
+# 終了処理 
+cap.release()
+cv2.destroyAllWindows()
