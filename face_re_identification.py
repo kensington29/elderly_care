@@ -428,10 +428,10 @@ while True:
     #   similarity が0.4以上で最大の顔を四角で囲む
         # if face_id == similarity.argmax() and similarity[face_id] >= 0.4:
         if similarity[face_id] >= 0.4:
-            # cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (0, 255, 0), -1)
-            # cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (255, 255, 255))
+            cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (0, 255, 0), -1)
+            cv2.rectangle(frame, (xmin, ymin - 22), (xmax, ymin), (255, 255, 255))
             cv2.rectangle(frame, (xmin, ymin), (xmax, ymax), (0, 255, 0), 1)
-            # cv2.rectangle(face_tmp, (0, 0), (face_tmp.shape[1], face_tmp.shape[0]), (0, 255, 0), 2)
+            cv2.rectangle(face_tmp, (0, 0), (face_tmp.shape[1], face_tmp.shape[0]), (0, 255, 0), 2)
             # cv2.putText(frame, score, (xmin + 3, ymin - 5),
             #            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
             cv2.putText(frame, label[i], (xmin + 3, ymin - 5),
