@@ -213,11 +213,11 @@ class Register:
     def __init__(self):
         pass
 
-    # def preprocess(self, image):
-    def preprocess(self, frame):
+    def preprocess(self, image):
+    # def preprocess(self, frame):
     
         # 1. Read Image
-        # frame = get_frame(image)
+        frame = get_frame(image)
         
         # 2. detect faces
         if frame.shape[2] == 4:
@@ -365,9 +365,9 @@ plt.rcParams['figure.figsize'] = (15.0, 15.0)
 plugin = IEPlugin(device="MYRIAD")
 
 # モデルの読み込み 
-# net = IENetwork(model='FP16/face-detection-retail-0004.xml', weights='FP16/face-detection-retail-0004.bin')
+net = IENetwork(model='FP16/face-detection-retail-0004.xml', weights='FP16/face-detection-retail-0004.bin')
 # 顔検出モデル'face-detection-adas-0001'を使用
-net = IENetwork(model='FP16/face-detection-adas-0001.xml', weights='FP16/face-detection-adas-0001.bin')
+# net = IENetwork(model='FP16/face-detection-adas-0001.xml', weights='FP16/face-detection-adas-0001.bin')
 
 register = Register()
 
@@ -394,14 +394,15 @@ while True:
     # video frameを1 frameずつ取得する
     # video frameを取得できなかった場合は、ret=False
     # 取得したvideo frameは'frame'に入る
-    ret, frame = cap.read()
+    # ret, frame = cap.read()
+    ret, image = cap.read()
  
     # Reload on error 
     if ret == False:
         continue
 
-    # frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
-    boxes, feature_vecs, aligned_faces = register.preprocess(frame)
+    frame, boxes, feature_vecs, aligned_faces = register.preprocess(image)
+    # boxes, feature_vecs, aligned_faces = register.preprocess(frame)
     init_frame = frame.copy()
 
     #plt.figure(figsize=(10, 10))
